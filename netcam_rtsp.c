@@ -206,7 +206,9 @@ static int rtsp_connect(netcam_context_ptr netcam)
 {
   // open the network connection
   AVDictionary *opts = 0;
-  av_dict_set(&opts, "rtsp_transport", "tcp", 0);
+  if (netcam->cnt->conf.rtsp_uses_tcp) {
+    av_dict_set(&opts, "rtsp_transport", "tcp", 0);
+  }
 
   int ret = avformat_open_input(&netcam->rtsp->format_context, netcam->rtsp->path, NULL, &opts);
   if (ret < 0) {

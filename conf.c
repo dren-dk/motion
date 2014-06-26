@@ -147,6 +147,7 @@ struct config conf_template = {
     netcam_keepalive:               "off",
     netcam_proxy:                   NULL,
     netcam_tolerant_check:          0,
+    rtsp_uses_tcp:                  1,
     text_changes:                   0,
     text_left:                      NULL,
     text_right:                     DEF_TIMESTAMP,
@@ -408,6 +409,15 @@ config_param config_params[] = {
     "# Default: off",
     0,
     CONF_OFFSET(netcam_tolerant_check),
+    copy_bool,
+    print_bool
+    },
+    {
+    "rtsp_uses_tcp",
+    "# RTSP connection uses TCP to communicate to the camera. Can prevent image corruption.\n"
+    "# Default: on",
+    1,
+    CONF_OFFSET(rtsp_uses_tcp),
     copy_bool,
     print_bool
     },
@@ -1579,8 +1589,10 @@ static void conf_cmdline(struct context *cnt, int thread)
     while ((c = getopt(conf->argc, conf->argv, "c:d:hmns?p:k:l:")) != EOF)
         switch (c) {
         case 'c':
-            if (thread == -1)
-                strcpy(cnt->conf_filename, optarg);
+            if (thread == -1) {
+                strncpy(cnt->conf_filename, optarg, sizeof(cnt->conf_filename) - 1);
+                cnt->conf_filename[sizeof(cnt->conf_filename) - 1] = '\0';
+            }
             break;
         case 'n':
             cnt->daemon = 0;

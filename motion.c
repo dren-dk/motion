@@ -305,7 +305,9 @@ static void sig_handler(int signo)
         if (cnt_list) {
             i = -1;
             while (cnt_list[++i]) {
-                cnt_list[i]->snapshot = 1;
+                if (cnt_list[i]->conf.snapshot_interval) {
+                    cnt_list[i]->snapshot = 1;
+                }
             }
         }
         break;
@@ -3185,6 +3187,14 @@ size_t mystrftime(const struct context *cnt, char *s, size_t max, const char *us
                     snprintf(tempstr, PATH_MAX, "%s", cnt->text_event_string);
                 else
                     ++pos_userformat;
+                break;
+
+            case 'w': // picture width
+                sprintf(tempstr, "%d", cnt->imgs.width);
+                break;
+
+            case 'h': // picture height
+                sprintf(tempstr, "%d", cnt->imgs.height);
                 break;
 
             case 'f': // filename -- or %fps
