@@ -28,7 +28,13 @@
 static void exec_command(struct context *cnt, char *command, char *filename, int filetype)
 {
     char stamp[PATH_MAX];
-    mystrftime(cnt, stamp, sizeof(stamp), command, &cnt->current_image->timestamp_tm, filename, filetype, 0);
+
+    unsigned long long event_id = 0;
+#ifdef HAVE_MYSQL
+    event_id = cnt->current_event_id;
+#endif
+
+    mystrftime(cnt, stamp, sizeof(stamp), command, &cnt->current_image->timestamp_tm, filename, filetype, event_id);
 
     if (!fork()) {
         int i;
@@ -149,8 +155,6 @@ static void do_sql_query(char *sqlquery, struct context *cnt, int save_id)
     }
     if (save_id) {
       cnt->current_event_id = mysql_insert_id(cnt->database);
-      MOTION_LOG(ALR, TYPE_DB, NO_ERRNO, "%s: SQL event id is '%llu'",
-                   cnt->current_event_id);
     }
   }
 #endif /* HAVE_MYSQL */

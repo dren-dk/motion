@@ -263,10 +263,21 @@ static int netcam_read_rtsp_image(netcam_context_ptr netcam)
 
     if(packet.stream_index != netcam->rtsp->video_stream_index) {
       // not our packet, skip
+      av_free_packet(&packet);
+      av_init_packet(&packet);
+      packet.data = NULL;
+      packet.size = 0;
+
       continue;
     }
 
     size_decoded = decode_packet(&packet, buffer, frame, cc);
+    if (size_decoded == 0) {
+      av_free_packet(&packet);
+      av_init_packet(&packet);
+      packet.data = NULL;
+      packet.size = 0;
+    }
   }
 
   if (size_decoded == 0) {
@@ -377,7 +388,7 @@ int netcam_setup_rtsp(netcam_context_ptr netcam, struct url_t *url)
     if ((cptr = strchr(ptr, ':')) == NULL) {
       netcam->rtsp->user = mystrdup(ptr);
     } else {
-      netcam->rtsp->user = mymalloc((cptr - ptr));
+      netcam->rtsp->user = mymalloc((cptr - ptr) + 2); // +2 for string terminator
       memcpy(netcam->rtsp->user, ptr,(cptr - ptr));
       netcam->rtsp->pass = mystrdup(cptr + 1);
     }
@@ -390,14 +401,14 @@ int netcam_setup_rtsp(netcam_context_ptr netcam, struct url_t *url)
    * the server, so we try ....
    */
   ret = rtsp_connect(netcam);
-  if (ret < 0)
-  {
-    rtsp_free_context(netcam->rtsp);
-    netcam->rtsp = NULL;
-    return ret;
+  if (ret < 0) {
+      rtsp_free_context(netcam->rtsp);
+      netcam->rtsp = NULL;
+      return ret;
   }
 
   netcam->get_image = netcam_read_rtsp_image;
+
   return 0;
 }
 
@@ -411,19 +422,18 @@ void netcam_shutdown_rtsp(netcam_context_ptr netcam)
 
 void netcam_reconnect_rtsp(netcam_context_ptr netcam)
 {
-  if (!netcam->rtsp)
-  {
+  if (!netcam->rtsp) {
     /* incorrect calling sequence */
     return;
   }
-  
+
   if (netcam->rtsp->format_context != NULL) {
-      avformat_close_input(&netcam->rtsp->format_context);
+    avformat_close_input(&netcam->rtsp->format_context);
   }
-  
+
   if (netcam->rtsp->codec_context != NULL) {
-      avcodec_close(netcam->rtsp->codec_context);
+    avcodec_close(netcam->rtsp->codec_context);
   }
-  
+
   rtsp_connect(netcam);
 }
