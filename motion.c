@@ -305,9 +305,7 @@ static void sig_handler(int signo)
         if (cnt_list) {
             i = -1;
             while (cnt_list[++i]) {
-                if (cnt_list[i]->conf.snapshot_interval) 
-                    cnt_list[i]->snapshot = 1;
-                
+                cnt_list[i]->snapshot = 1;
             }
         }
         break;

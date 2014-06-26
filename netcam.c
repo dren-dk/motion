@@ -2018,6 +2018,11 @@ static void *netcam_handler_loop(void *arg)
                     MOTION_LOG(ERR, TYPE_NETCAM, NO_ERRNO, "%s: Trying to re-connect");
                 
             }
+            /* Attempt to re-connect to rtsp server */
+            else if (netcam->rtsp) {
+                MOTION_LOG(ERR, TYPE_NETCAM, NO_ERRNO, "%s: Trying to re-connect to rtsp server");
+                netcam_reconnect_rtsp(netcam);
+            }
             continue;
         }
         /*
