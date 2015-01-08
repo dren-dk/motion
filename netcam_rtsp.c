@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include "netcam_rtsp.h"
 #include "motion.h"
+#include "error.h"
+
 
 /****************************************************
  * Duplicated static functions - FIXME
@@ -210,6 +212,16 @@ static int rtsp_connect(netcam_context_ptr netcam)
     av_dict_set(&opts, "rtsp_transport", "tcp", 0);
   }
 
+  if (netcam->rtsp->user) {
+    av_dict_set(&opts, "user", netcam->rtsp->user, 0);
+    MOTION_LOG(ERR, TYPE_NETCAM, NO_ERRNO, "%s: Set user:'%s'", netcam->rtsp->user);
+  }
+
+  if (netcam->rtsp->pass) {
+    av_dict_set(&opts, "password", netcam->rtsp->pass, 0);
+    MOTION_LOG(ERR, TYPE_NETCAM, NO_ERRNO, "%s: Set password:'%s'", netcam->rtsp->pass);
+  }
+
   int ret = avformat_open_input(&netcam->rtsp->format_context, netcam->rtsp->path, NULL, &opts);
   if (ret < 0) {
     MOTION_LOG(ALR, TYPE_NETCAM, NO_ERRNO, "%s: unable to open input(%s): %d - %s", netcam->rtsp->path, ret, av_err2str(ret));
@@ -251,6 +263,7 @@ static int netcam_read_rtsp_image(netcam_context_ptr netcam)
 
   AVPacket packet;
   
+  MOTION_LOG(DBG, TYPE_NETCAM, SHOW_ERRNO, "%s: Reading image");
   av_init_packet(&packet);
 
   packet.data = NULL;
@@ -289,6 +302,8 @@ static int netcam_read_rtsp_image(netcam_context_ptr netcam)
   if (size_decoded != usual_size_decoded) {
     MOTION_LOG(WRN, TYPE_NETCAM, SHOW_ERRNO, "%s: unusual frame size of %d!", size_decoded);
     usual_size_decoded = size_decoded;
+  } else {
+    MOTION_LOG(DBG, TYPE_NETCAM, SHOW_ERRNO, "%s: usual frame size of %d!", size_decoded);
   }
 
   // at this point, we are finished with the packet and frame, so free them.
@@ -369,10 +384,20 @@ int netcam_setup_rtsp(netcam_context_ptr netcam, struct url_t *url)
   } else if (netcam->connect_port < 0) {
     netcam->connect_port = 0;
   }
-  ptr = mymalloc(strlen(url->service) + strlen(netcam->connect_host)
-		 + 5 + strlen(url->path) + 5);
-  sprintf((char *)ptr, "%s://%s:%d%s", url->service,
-	  netcam->connect_host, netcam->connect_port, url->path);
+
+  if (cnt->conf.netcam_userpass) {
+    ptr = mymalloc(strlen(url->service) + strlen(netcam->connect_host) 
+		   + 5 + strlen(url->path) + 5 + strlen(cnt->conf.netcam_userpass) + 1); 
+    sprintf((char *)ptr, "%s://%s@%s:%d%s", url->service, 
+	    cnt->conf.netcam_userpass, 
+	    netcam->connect_host, netcam->connect_port, url->path); 
+
+  } else {
+    ptr = mymalloc(strlen(url->service) + strlen(netcam->connect_host)
+		   + 5 + strlen(url->path) + 5);
+    sprintf((char *)ptr, "%s://%s:%d%s", url->service,
+	    netcam->connect_host, netcam->connect_port, url->path);
+  }
   
   netcam->rtsp->path = (char *)ptr;
   
