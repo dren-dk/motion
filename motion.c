@@ -21,6 +21,7 @@
 #include "event.h"
 #include "picture.h"
 #include "rotate.h"
+#include <utime.h>
 
 /* Forward declarations */
 static int motion_init(struct context *cnt);
@@ -394,6 +395,30 @@ static void motion_remove_pid(void)
         ptr_logfile = NULL;
     }        
 
+}
+
+/**
+ * motion_touch_pid
+ *
+ *   This function touches the pid file, to let an external process detect that motion hasn't hung itself.
+ */
+time_t last_pid_touch = 0;
+void motion_touch_pid(void)
+{
+  
+  time_t now = time(NULL);
+  if (now-last_pid_touch < 2) { // Limit the frequency of file touching, because it could end up being expensive.
+    return;
+  }
+  last_pid_touch = now;
+
+  //MOTION_LOG(WRN, TYPE_ALL, NO_ERRNO, "%s: Touching (%s).", cnt_list[0]->conf.pid_file);
+  
+  if ((cnt_list[0]->daemon) && (cnt_list[0]->conf.pid_file)) {
+    struct utimbuf new_times;
+    new_times.actime = new_times.modtime = time(NULL);
+    utime(cnt_list[0]->conf.pid_file, &new_times);
+  }
 }
 
 /**

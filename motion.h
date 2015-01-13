@@ -458,4 +458,7 @@ FILE * myfopen(const char *, const char *, size_t);
 int myfclose(FILE *);
 size_t mystrftime(const struct context *, char *, size_t, const char *, const struct tm *, const char *, int, unsigned long long);
 int create_path(const char *);
+
+void motion_touch_pid();
+
 #endif /* _INCLUDE_MOTION_H */

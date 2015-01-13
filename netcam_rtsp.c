@@ -302,8 +302,6 @@ static int netcam_read_rtsp_image(netcam_context_ptr netcam)
   if (size_decoded != usual_size_decoded) {
     MOTION_LOG(WRN, TYPE_NETCAM, SHOW_ERRNO, "%s: unusual frame size of %d!", size_decoded);
     usual_size_decoded = size_decoded;
-  } else {
-    MOTION_LOG(DBG, TYPE_NETCAM, SHOW_ERRNO, "%s: usual frame size of %d!", size_decoded);
   }
 
   // at this point, we are finished with the packet and frame, so free them.
@@ -357,6 +355,9 @@ static int netcam_read_rtsp_image(netcam_context_ptr netcam)
   
   pthread_mutex_unlock(&netcam->mutex);
   
+  // We got a frame, so let the watchdog know that we're still alive
+  motion_touch_pid();
+
   return 0;
 }
 
