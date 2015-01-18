@@ -557,11 +557,9 @@ static int put_jpeg_yuv420p_memory(unsigned char *dest_image, int image_size,
 
     cinfo.err = jpeg_std_error(&jerr);  // Errors get written to stderr
 
-    int jpeg_height = height - (height % 16);
-
     jpeg_create_compress(&cinfo);
     cinfo.image_width = width;
-    cinfo.image_height = jpeg_height;
+    cinfo.image_height = height;
     cinfo.input_components = 3;
     jpeg_set_defaults(&cinfo);
 
@@ -587,16 +585,20 @@ static int put_jpeg_yuv420p_memory(unsigned char *dest_image, int image_size,
 
     put_jpeg_exif(&cinfo, cnt, tm, box);
 
-    for (j = 0; j < jpeg_height; j += 16) {
-		for (i = 0; i < 16; i++) {
-			y[i] = input_image + width * (i + j);
+    int line = 0;
+    for (j = 0; j < height; j += 16) {
+        for (i = 0; i < 16; i++) {
+            y[i] = input_image + width * line;
+            if (i % 2 == 0) {
+                cb[i / 2] = input_image + width * height + width / 2 * (line / 2);
+                cr[i / 2] = input_image + width * height + width * height / 4 + width / 2 * (line / 2);
+            }
 
-			if (i % 2 == 0) {
-				cb[i / 2] = input_image + width * height + width / 2 * ((i + j) /2);
-				cr[i / 2] = input_image + width * height + width * height / 4 + width / 2 * ((i + j) / 2);
-			}
-		}
-		jpeg_write_raw_data(&cinfo, data, 16);
+	    if (line < height-1) {
+	      line++;
+	    }
+        }
+        jpeg_write_raw_data(&cinfo, data, 16);
     }
 
     jpeg_finish_compress(&cinfo);
@@ -660,6 +662,7 @@ static int put_jpeg_grey_memory(unsigned char *dest_image, int image_size, unsig
     return dest_image_size;
 }
 
+
 /**
  * put_jpeg_yuv420p_file
  *      Converts an YUV420P coded image to a jpeg image and writes
@@ -721,13 +724,18 @@ static void put_jpeg_yuv420p_file(FILE *fp,
 
     put_jpeg_exif(&cinfo, cnt, tm, box);
 
+    int line = 0;
     for (j = 0; j < height; j += 16) {
         for (i = 0; i < 16; i++) {
-            y[i] = image + width * (i + j);
+            y[i] = image + width * line;
             if (i % 2 == 0) {
-                cb[i / 2] = image + width * height + width / 2 * ((i + j) / 2);
-                cr[i / 2] = image + width * height + width * height / 4 + width / 2 * ((i + j) / 2);
+                cb[i / 2] = image + width * height + width / 2 * (line / 2);
+                cr[i / 2] = image + width * height + width * height / 4 + width / 2 * (line / 2);
             }
+
+	    if (line < height-1) {
+	      line++;
+	    }
         }
         jpeg_write_raw_data(&cinfo, data, 16);
     }
